@@ -31,26 +31,27 @@ Anti-bot browser automation that bypasses Cloudflare Turnstile, Datadome, and ag
 
 All scripts run in `pybox` distrobox for isolation.
 
+⚠️ **Use `python3.14` explicitly** - pybox may have multiple Python versions with different packages installed.
+
 ### 1. Setup (First Time)
 
 ```bash
-# Install tools in pybox
-distrobox-enter pybox -- pip install camoufox curl_cffi
+# Install tools in pybox (use python3.14)
+distrobox-enter pybox -- python3.14 -m pip install camoufox curl_cffi
 
-# Install Camoufox browser (downloads ~700MB Firefox fork)
-distrobox-enter pybox -- camoufox fetch
+# Camoufox browser downloads automatically on first run (~700MB Firefox fork)
 ```
 
 ### 2. Fetch a Protected Page
 
 **Browser (Camoufox):**
 ```bash
-distrobox-enter pybox -- python scripts/camoufox-fetch.py "https://example.com" --headless
+distrobox-enter pybox -- python3.14 scripts/camoufox-fetch.py "https://example.com" --headless
 ```
 
 **API only (curl_cffi):**
 ```bash
-distrobox-enter pybox -- python scripts/curl-api.py "https://api.example.com/endpoint"
+distrobox-enter pybox -- python3.14 scripts/curl-api.py "https://api.example.com/endpoint"
 ```
 
 ## Architecture
@@ -59,7 +60,7 @@ distrobox-enter pybox -- python scripts/curl-api.py "https://api.example.com/end
 ┌─────────────────────────────────────────────────────────┐
 │                     OpenClaw Agent                       │
 ├─────────────────────────────────────────────────────────┤
-│  distrobox-enter pybox -- python scripts/xxx.py         │
+│  distrobox-enter pybox -- python3.14 scripts/xxx.py         │
 ├─────────────────────────────────────────────────────────┤
 │                      pybox Container                     │
 │         ┌─────────────┐  ┌─────────────┐               │
@@ -129,13 +130,33 @@ python scripts/camoufox-fetch.py "https://example.com"
 | Browser crashes in pybox | Install missing deps: `sudo dnf install gtk3 libXt` |
 | TLS fingerprint blocked | Use curl_cffi with `impersonate="chrome120"` |
 | Turnstile checkbox appears | Add mouse movement, increase wait time |
+| `ModuleNotFoundError: camoufox` | Use `python3.14` not `python` or `python3` |
+| `greenlet` segfault (exit 139) | Python version mismatch - use `python3.14` explicitly |
+| `libstdc++.so.6` errors | NixOS lib path issue - use `python3.14` in pybox |
+
+### Python Version Issues (NixOS/pybox)
+
+The `pybox` container may have multiple Python versions with separate site-packages:
+
+```bash
+# Check which Python has camoufox
+distrobox-enter pybox -- python3.14 -c "import camoufox; print('OK')"
+
+# Wrong (may use different Python)
+distrobox-enter pybox -- python3.14 scripts/camoufox-session.py ...
+
+# Correct (explicit version)
+distrobox-enter pybox -- python3.14 scripts/camoufox-session.py ...
+```
+
+If you get segfaults or import errors, always use `python3.14` explicitly.
 
 ## Examples
 
 ### Scrape Airbnb Listing
 
 ```bash
-distrobox-enter pybox -- python scripts/camoufox-fetch.py \
+distrobox-enter pybox -- python3.14 scripts/camoufox-fetch.py \
   "https://www.airbnb.com/rooms/12345" \
   --headless --wait 10 \
   --screenshot airbnb.png
@@ -144,7 +165,7 @@ distrobox-enter pybox -- python scripts/camoufox-fetch.py \
 ### Scrape Yelp Business
 
 ```bash
-distrobox-enter pybox -- python scripts/camoufox-fetch.py \
+distrobox-enter pybox -- python3.14 scripts/camoufox-fetch.py \
   "https://www.yelp.com/biz/some-restaurant" \
   --headless --wait 8 \
   --output yelp.html
@@ -153,7 +174,7 @@ distrobox-enter pybox -- python scripts/camoufox-fetch.py \
 ### API Scraping with TLS Spoofing
 
 ```bash
-distrobox-enter pybox -- python scripts/curl-api.py \
+distrobox-enter pybox -- python3.14 scripts/curl-api.py \
   "https://api.yelp.com/v3/businesses/search?term=coffee&location=SF" \
   --headers '{"Authorization": "Bearer xxx"}'
 ```
@@ -166,17 +187,17 @@ Persistent sessions allow reusing authenticated state across runs without re-log
 
 ```bash
 # 1. Login interactively (headed browser opens)
-distrobox-enter pybox -- python scripts/camoufox-session.py \
+distrobox-enter pybox -- python3.14 scripts/camoufox-session.py \
   --profile airbnb --login "https://www.airbnb.com/account-settings"
 
 # Complete login in browser, then press Enter to save session
 
 # 2. Reuse session in headless mode
-distrobox-enter pybox -- python scripts/camoufox-session.py \
+distrobox-enter pybox -- python3.14 scripts/camoufox-session.py \
   --profile airbnb --headless "https://www.airbnb.com/trips"
 
 # 3. Check session status
-distrobox-enter pybox -- python scripts/camoufox-session.py \
+distrobox-enter pybox -- python3.14 scripts/camoufox-session.py \
   --profile airbnb --status "https://www.airbnb.com"
 ```
 
@@ -230,7 +251,7 @@ Since `--login` requires a visible browser, you need display forwarding:
 ssh -X user@server
 
 # Run login (opens browser on your local machine)
-distrobox-enter pybox -- python scripts/camoufox-session.py \
+distrobox-enter pybox -- python3.14 scripts/camoufox-session.py \
   --profile mysite --login "https://example.com"
 ```
 
@@ -243,7 +264,7 @@ vncserver :1
 vncviewer server:1
 
 # In VNC session: run login
-distrobox-enter pybox -- python scripts/camoufox-session.py \
+distrobox-enter pybox -- python3.14 scripts/camoufox-session.py \
   --profile mysite --login "https://example.com"
 ```
 
