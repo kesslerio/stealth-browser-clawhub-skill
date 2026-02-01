@@ -158,6 +158,111 @@ distrobox-enter pybox -- python scripts/curl-api.py \
   --headers '{"Authorization": "Bearer xxx"}'
 ```
 
+## Session Management
+
+Persistent sessions allow reusing authenticated state across runs without re-logging in.
+
+### Quick Start
+
+```bash
+# 1. Login interactively (headed browser opens)
+distrobox-enter pybox -- python scripts/camoufox-session.py \
+  --profile airbnb --login "https://www.airbnb.com/account-settings"
+
+# Complete login in browser, then press Enter to save session
+
+# 2. Reuse session in headless mode
+distrobox-enter pybox -- python scripts/camoufox-session.py \
+  --profile airbnb --headless "https://www.airbnb.com/trips"
+
+# 3. Check session status
+distrobox-enter pybox -- python scripts/camoufox-session.py \
+  --profile airbnb --status "https://www.airbnb.com"
+```
+
+### Flags
+
+| Flag | Description |
+|------|-------------|
+| `--profile NAME` | Named profile for session storage (required) |
+| `--login` | Interactive login mode - opens headed browser |
+| `--headless` | Use saved session in headless mode |
+| `--status` | Check if session appears valid |
+| `--export-cookies FILE` | Export cookies to JSON for backup |
+| `--import-cookies FILE` | Import cookies from JSON file |
+
+### Storage
+
+- **Location:** `~/.stealth-browser/profiles/<name>/`
+- **Permissions:** Directory `700`, files `600`
+- **Profile names:** Letters, numbers, `_`, `-` only (1-63 chars)
+
+### Cookie Handling
+
+- **Save:** All cookies from all domains stored in browser profile
+- **Restore:** Only cookies matching target URL domain are used
+- **SSO:** If redirected to Google/auth domain, re-authenticate once and profile updates
+
+### Login Wall Detection
+
+The script detects session expiry using multiple signals:
+
+1. **HTTP status:** 401, 403
+2. **URL patterns:** `/login`, `/signin`, `/auth`
+3. **Title patterns:** "login", "sign in", etc.
+4. **Content keywords:** "captcha", "verify", "authenticate"
+5. **Form detection:** Password input fields
+
+If detected during `--headless` mode, you'll see:
+```
+🔒 Login wall signals: url-path, password-form
+```
+
+Re-run with `--login` to refresh the session.
+
+### Remote Login (SSH)
+
+Since `--login` requires a visible browser, you need display forwarding:
+
+**X11 Forwarding (Preferred):**
+```bash
+# Connect with X11 forwarding
+ssh -X user@server
+
+# Run login (opens browser on your local machine)
+distrobox-enter pybox -- python scripts/camoufox-session.py \
+  --profile mysite --login "https://example.com"
+```
+
+**VNC Alternative:**
+```bash
+# On server: start VNC session
+vncserver :1
+
+# On client: connect to VNC
+vncviewer server:1
+
+# In VNC session: run login
+distrobox-enter pybox -- python scripts/camoufox-session.py \
+  --profile mysite --login "https://example.com"
+```
+
+### Security Notes
+
+⚠️ **Cookies are credentials.** Treat profile directories like passwords:
+- Profile dirs have `chmod 700` (owner only)
+- Cookie exports have `chmod 600`
+- Don't share profiles or exported cookies over insecure channels
+- Consider encrypting backups
+
+### Limitations
+
+| Limitation | Reason |
+|------------|--------|
+| localStorage/sessionStorage not exported | Use browser profile instead (handles automatically) |
+| IndexedDB not portable | Stored in browser profile, not cookie export |
+| No parallel profile access | No file locking in v1; use one process per profile |
+
 ## References
 
 - [references/proxy-setup.md](references/proxy-setup.md) — Proxy configuration guide
