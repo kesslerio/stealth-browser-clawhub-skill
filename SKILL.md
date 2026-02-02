@@ -1,31 +1,50 @@
 ---
-name: stealth-browser
-description: Anti-bot browser automation using Camoufox and Nodriver. Bypasses Cloudflare Turnstile, Datadome, and aggressive anti-bot on sites like Airbnb and Yelp. Use when standard Playwright/Selenium gets blocked.
+name: camoufox-stealth
+description: C++ level anti-bot browser automation using Camoufox (patched Firefox) in isolated containers. Bypasses Cloudflare Turnstile, Datadome, Airbnb, Yelp. Superior to Chrome-based solutions (undetected-chromedriver, puppeteer-stealth) which only patch at JS level. Use when standard Playwright/Selenium gets blocked.
 metadata:
   openclaw:
-    emoji: "🥷"
+    emoji: "🦊"
     requires:
       bins: ["distrobox"]
       env: []
 ---
 
-# Stealth Browser Skill 🥷
+# Camoufox Stealth Browser 🦊
 
-Anti-bot browser automation that bypasses Cloudflare Turnstile, Datadome, and aggressive fingerprinting.
+**C++ level** anti-bot evasion using Camoufox — a custom Firefox fork with stealth patches compiled into the browser itself, not bolted on via JavaScript.
+
+## Why Camoufox > Chrome-based Solutions
+
+| Approach | Detection Level | Tools |
+|----------|-----------------|-------|
+| **Camoufox (this skill)** | C++ compiled patches | Undetectable fingerprints baked into browser |
+| undetected-chromedriver | JS runtime patches | Can be detected by timing analysis |
+| puppeteer-stealth | JS injection | Patches applied after page load = detectable |
+| playwright-stealth | JS injection | Same limitations |
+
+**Camoufox patches Firefox at the source code level** — WebGL, Canvas, AudioContext fingerprints are genuinely spoofed, not masked by JavaScript overrides that anti-bot systems can detect.
+
+## Key Advantages
+
+1. **C++ Level Stealth** — Fingerprint spoofing compiled into the browser, not JS hacks
+2. **Container Isolation** — Runs in distrobox, keeping your host system clean
+3. **Dual-Tool Approach** — Camoufox for browsers, curl_cffi for API-only (no browser overhead)
+4. **Firefox-Based** — Less fingerprinted than Chrome (everyone uses Chrome for bots)
 
 ## When to Use
 
 - Standard Playwright/Selenium gets blocked
 - Site shows Cloudflare challenge or "checking your browser"
 - Need to scrape Airbnb, Yelp, or similar protected sites
-- `playwright-stealth` isn't working anymore
+- `puppeteer-stealth` or `undetected-chromedriver` stopped working
+- You need **actual** stealth, not JS band-aids
 
 ## Tool Selection
 
-| Target Difficulty | Tool | When to Use |
-|------------------|------|-------------|
-| **Browser** | Camoufox | All protected sites - Cloudflare, Datadome, Yelp, Airbnb |
-| **API Only** | curl_cffi | No browser needed, just TLS spoofing |
+| Tool | Level | Best For |
+|------|-------|----------|
+| **Camoufox** | C++ patches | All protected sites - Cloudflare, Datadome, Yelp, Airbnb |
+| **curl_cffi** | TLS spoofing | API endpoints only - no JS needed, very fast |
 
 ## Quick Start
 
