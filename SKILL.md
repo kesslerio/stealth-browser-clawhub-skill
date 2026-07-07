@@ -1,7 +1,7 @@
 ---
 name: camoufox-stealth-browser
 homepage: https://github.com/kesslerio/camoufox-stealth-browser-clawhub-skill
-description: Stealth browser automation with Camoufox for hostile sites that block standard Playwright or Selenium flows. Browser workflows prefer camoufox-nixos on NixOS hosts and fall back to distrobox plus pybox on compatible Linux setups. Use when Cloudflare, Datadome, Airbnb, Yelp, or similar anti-bot targets require persistent login and session reuse. Browser lane only; API helpers are secondary.
+description: Explicit-only stealth browser automation with Camoufox for hostile sites that block native OpenClaw browser, standard Playwright, or Selenium flows. Default to the native OpenClaw browser for ordinary browsing, booking flows, calendars, forms, screenshots, and generic site testing. Use Camoufox only when the user explicitly asks for Camoufox, a stealth browser, bot bypass, anti-bot evasion, Cloudflare/Datadome bypass, persistent login/session reuse, or a target has already blocked the native browser lane. Browser lane only; API helpers are secondary.
 metadata:
   openclaw:
     emoji: "🦊"
@@ -12,7 +12,18 @@ metadata:
 
 # Camoufox Stealth Browser 🦊
 
-Camoufox is the hostile-site browser lane. Use it when standard Playwright or Selenium flows get blocked and you need a real stealth browser session rather than generic automation.
+Default browser lane: native OpenClaw browser.
+
+Do not use this skill for ordinary browser automation. Use native OpenClaw browser first for normal browsing, appointment booking, dynamic calendars, forms, screenshots, accessibility snapshots, and generic site testing.
+
+Use Camoufox only when one of these is true:
+
+- The user explicitly asks for Camoufox.
+- The user explicitly asks for a stealth browser, bot bypass, anti-bot evasion, Cloudflare bypass, Datadome bypass, or similar.
+- Native OpenClaw browser already reached the site and was blocked by anti-bot or fingerprinting defenses.
+- The task requires a persistent hostile-site stealth session and the user accepts that tradeoff.
+
+Camoufox is the hostile-site browser lane, not the default browser lane. If native OpenClaw browser is unavailable, report that directly instead of silently switching to Camoufox unless the user asked for stealth/bypass behavior.
 
 ## Why Camoufox
 
@@ -25,11 +36,14 @@ Camoufox is the hostile-site browser lane. Use it when standard Playwright or Se
 
 ## Runtime Selection
 
-The skill now uses this order for **browser** workflows:
+For explicit Camoufox workflows, the skill uses this order:
 
-1. `camoufox-nixos`
-2. `distrobox` with `pybox`
-3. clear setup failure if neither exists
+1. OpenClaw/AlphaClaw bridge at `/data/bin/camoufox-nixos`, when present
+2. `camoufox-nixos` from `PATH`
+3. `distrobox` with `pybox`
+4. clear setup failure if neither exists
+
+Inside OpenClaw/AlphaClaw, prefer `/data/bin/camoufox-nixos`. Do not override the scripts to use `/run/current-system/sw/bin/camoufox-nixos` unless you are deliberately diagnosing the direct host wrapper; in this environment that path can report misleading missing-venv errors such as `/data/.local/venvs/camoufox/bin/python`.
 
 The repo still carries a separate `curl_cffi` helper, but it is not the primary routing target for this skill.
 
@@ -68,6 +82,12 @@ bash scripts/setup.sh
 
 That script configures the distrobox fallback when `pybox` is available and tells you what is missing when it is not.
 
+If you just patched the host-local NixOS wrapper itself, remember that the live `camoufox-nixos` command does not change until the host runs:
+
+```bash
+sudo nixos-rebuild switch --flake /etc/nixos#nixos
+```
+
 ## When To Use
 
 - Standard Playwright or Selenium gets blocked
@@ -76,7 +96,7 @@ That script configures the distrobox fallback when `pybox` is available and tell
 - You need actual stealth rather than generic browser automation
 - You need login/session reuse on a host that already has `camoufox-nixos`
 
-Do **not** use this skill for ordinary browsing or generic site testing. Use your normal browser automation tool for that.
+Do **not** use this skill for ordinary browsing or generic site testing. Use native OpenClaw browser for that.
 
 ## Workflow Summary
 
@@ -114,6 +134,7 @@ Do **not** use this skill for ordinary browsing or generic site testing. Use you
 
 This skill owns **no durable state of its own**. Browser profile state belongs to the selected runtime:
 
+- **OpenClaw/AlphaClaw bridge (`/data/bin/camoufox-nixos`)**: bridge-managed host state mapping
 - **Host-native (`camoufox-nixos`)**: `~/.cache/camoufox-nixos`
 - **Legacy distrobox fallback**: `~/.stealth-browser/profiles/<name>/`
 
@@ -167,11 +188,14 @@ Interactive login still needs a visible browser window regardless of runtime. If
 - SSH with display forwarding where supported
 - VNC or similar remote desktop
 
+On TTY-only or headless shell sessions, headed `camoufox-nixos open` should fail fast with `display_missing`. That is expected. Use `--headless` unless you intentionally attached a real display.
+
 ## Troubleshooting
 
 | Problem | Meaning | What to do |
 |---------|---------|------------|
 | `No supported browser runtime found` | Neither `camoufox-nixos` nor valid distrobox fallback was detected | Install the host wrapper or configure distrobox plus pybox |
+| `display_missing` | You tried a headed host-native launch on a session with no `DISPLAY` or `WAYLAND_DISPLAY` | This is expected on TTY-only hosts and remote shells; rerun with `--headless` or use a real graphical session |
 | `camoufox-nixos` times out before navigation | Browser wrapper failed to launch cleanly on the host | Report it as a host runtime launch issue first; only discuss site blocking after the browser actually reaches the target |
 | `--import-cookies requires the legacy distrobox fallback` | Host-native lane cannot honestly reproduce that legacy import flow | Use the fallback lane for that operation |
 | Browser lane works but `curl-api.py` does not | `curl_cffi` lane is still legacy-path setup in this repo | Run `bash scripts/setup.sh` |

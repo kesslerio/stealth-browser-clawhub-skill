@@ -20,7 +20,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import tempfile
 import time
 import uuid
 from pathlib import Path
@@ -128,72 +127,67 @@ def fetch_page_host_native(
 
     print("🥷 Starting Camoufox browser (NixOS-native runtime)...")
 
-    with tempfile.TemporaryDirectory(prefix="camoufox-fetch-") as state_root:
-        env = {"CAMOUFOX_NIXOS_STATE_ROOT": state_root}
-        profile = f"fetch-{uuid.uuid4().hex[:10]}"
-        open_args = ["open", "--profile", profile]
-        if headless:
-            open_args.append("--headless")
-        if proxy:
-            open_args.extend(["--proxy", proxy])
-        open_args.append(url)
+    profile = f"fetch-{uuid.uuid4().hex[:10]}"
+    open_args = ["open", "--profile", profile]
+    if headless:
+        open_args.append("--headless")
+    if proxy:
+        open_args.extend(["--proxy", proxy])
+    open_args.append(url)
 
-        open_payload = run_camoufox_nixos(runtime, open_args, extra_env=env)
-        require_ok(open_payload, "Failed to open browser session.")
-        session_id = open_payload.get("sessionId")
-        if not isinstance(session_id, str) or not session_id:
-            raise BrowserRuntimeError("camoufox-nixos did not return a session id.")
+    open_payload = run_camoufox_nixos(runtime, open_args)
+    require_ok(open_payload, "Failed to open browser session.")
+    session_id = open_payload.get("sessionId")
+    if not isinstance(session_id, str) or not session_id:
+        raise BrowserRuntimeError("camoufox-nixos did not return a session id.")
 
-        try:
-            print(f"📡 Navigating to: {url}")
-            print(f"⏳ Waiting {wait}s for anti-bot resolution...")
-            time.sleep(wait)
+    try:
+        print(f"📡 Navigating to: {url}")
+        print(f"⏳ Waiting {wait}s for anti-bot resolution...")
+        time.sleep(wait)
 
-            eval_payload = run_camoufox_nixos(
+        eval_payload = run_camoufox_nixos(
+            runtime,
+            ["eval", "--session", session_id, "document.documentElement.outerHTML"],
+        )
+        require_ok(eval_payload, "Failed to read page HTML.")
+        content = eval_payload.get("data", {}).get("result", "")
+        if not isinstance(content, str):
+            content = json.dumps(content)
+
+        page = eval_payload.get("page") or open_payload.get("page") or {}
+        title = page.get("title") or ""
+        final_url = page.get("url") or url
+        print(f"📄 Page title: {title}")
+        print_block_indicators(content)
+
+        if screenshot:
+            screenshot_path = str(Path(screenshot).expanduser())
+            screenshot_payload = run_camoufox_nixos(
                 runtime,
-                ["eval", "--session", session_id, "document.documentElement.outerHTML"],
-                extra_env=env,
+                ["screenshot", "--session", session_id, screenshot_path],
             )
-            require_ok(eval_payload, "Failed to read page HTML.")
-            content = eval_payload.get("data", {}).get("result", "")
-            if not isinstance(content, str):
-                content = json.dumps(content)
+            require_ok(screenshot_payload, "Failed to capture screenshot.")
+            print(f"📸 Screenshot saved: {screenshot_path}")
 
-            page = eval_payload.get("page") or open_payload.get("page") or {}
-            title = page.get("title") or ""
-            final_url = page.get("url") or url
-            print(f"📄 Page title: {title}")
-            print_block_indicators(content)
+        if output:
+            output_path = Path(output).expanduser()
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(content, encoding="utf-8")
+            print(f"💾 HTML saved: {output_path}")
+        else:
+            print(f"\n✅ Success! Page loaded ({len(content)} bytes)")
+            print(f"   Final URL: {final_url}")
 
-            if screenshot:
-                screenshot_path = str(Path(screenshot).expanduser())
-                screenshot_payload = run_camoufox_nixos(
-                    runtime,
-                    ["screenshot", "--session", session_id, screenshot_path],
-                    extra_env=env,
-                )
-                require_ok(screenshot_payload, "Failed to capture screenshot.")
-                print(f"📸 Screenshot saved: {screenshot_path}")
-
-            if output:
-                output_path = Path(output).expanduser()
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                output_path.write_text(content, encoding="utf-8")
-                print(f"💾 HTML saved: {output_path}")
-            else:
-                print(f"\n✅ Success! Page loaded ({len(content)} bytes)")
-                print(f"   Final URL: {final_url}")
-
-            return 0
-        finally:
-            close_payload = run_camoufox_nixos(
-                runtime,
-                ["close", "--session", session_id],
-                extra_env=env,
-            )
-            if close_payload.get("ok") is not True:
-                message = payload_error_message(close_payload, "Failed to close browser session.")
-                print(f"Warning: {message}", file=sys.stderr)
+        return 0
+    finally:
+        close_payload = run_camoufox_nixos(
+            runtime,
+            ["close", "--session", session_id],
+        )
+        if close_payload.get("ok") is not True:
+            message = payload_error_message(close_payload, "Failed to close browser session.")
+            print(f"Warning: {message}", file=sys.stderr)
 
 
 def main() -> int:
