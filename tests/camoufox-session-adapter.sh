@@ -6,7 +6,8 @@ FIXTURES="$ROOT/tests/fixtures"
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
 
-export STEALTH_BROWSER_CAMOUFOX_NIXOS_BIN="$FIXTURES/fake_camoufox_nixos.py"
+export STEALTH_BROWSER_OPENCLAW_CAMOUFOX_NIXOS_BIN="$FIXTURES/fake_camoufox_nixos.py"
+unset STEALTH_BROWSER_CAMOUFOX_NIXOS_BIN
 export STEALTH_BROWSER_DISTROBOX_BIN=none
 
 STATUS_OUT="$TMPDIR/status.stdout"

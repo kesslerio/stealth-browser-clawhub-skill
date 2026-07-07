@@ -6,8 +6,10 @@ FIXTURES="$ROOT/tests/fixtures"
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
 
-export STEALTH_BROWSER_CAMOUFOX_NIXOS_BIN="$FIXTURES/fake_camoufox_nixos.py"
+export STEALTH_BROWSER_OPENCLAW_CAMOUFOX_NIXOS_BIN="$FIXTURES/fake_camoufox_nixos.py"
+unset STEALTH_BROWSER_CAMOUFOX_NIXOS_BIN
 export STEALTH_BROWSER_DISTROBOX_BIN=none
+export FAKE_CAMOUFOX_LOG="$TMPDIR/camoufox.log"
 
 HTML_OUT="$TMPDIR/page.html"
 SHOT_OUT="$TMPDIR/page.png"
@@ -24,6 +26,7 @@ grep -q "NixOS-native runtime" "$STDOUT_OUT"
 grep -q "HTML saved" "$STDOUT_OUT"
 grep -q "Example Domain" "$HTML_OUT"
 test -s "$SHOT_OUT"
+grep -q "state_root= args=open" "$FAKE_CAMOUFOX_LOG"
 
 export STEALTH_BROWSER_CAMOUFOX_NIXOS_BIN=none
 export STEALTH_BROWSER_DISTROBOX_BIN="$FIXTURES/fake_distrobox.sh"

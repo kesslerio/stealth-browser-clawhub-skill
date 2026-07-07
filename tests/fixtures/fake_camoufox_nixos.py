@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -25,6 +26,12 @@ def payload(command: str, data: dict | None = None, page: dict | None = None) ->
 
 def main() -> int:
     args = sys.argv[1:]
+    log_path = os.environ.get("FAKE_CAMOUFOX_LOG")
+    if log_path:
+        with Path(log_path).open("a", encoding="utf-8") as handle:
+            state_root = os.environ.get("CAMOUFOX_NIXOS_STATE_ROOT", "")
+            handle.write(f"state_root={state_root} args={' '.join(args)}\n")
+
     if not args:
         print(json.dumps({"ok": False, "command": "unknown", "data": {}, "error": {"message": "missing command"}}))
         return 1

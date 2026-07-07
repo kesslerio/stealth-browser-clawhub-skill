@@ -14,6 +14,7 @@ from typing import Mapping, Sequence
 
 DEFAULT_DISTROBOX_CONTAINER = "pybox"
 DEFAULT_DISTROBOX_PYTHON = "python3.14"
+DEFAULT_OPENCLAW_CAMOUFOX_NIXOS = "/data/bin/camoufox-nixos"
 
 
 @dataclass(frozen=True)
@@ -32,13 +33,29 @@ class BrowserRuntimeError(RuntimeError):
     """Raised when runtime selection or invocation fails."""
 
 
+def _env_disabled(value: str) -> bool:
+    return value.lower() in {"none", "disabled"}
+
+
 def _resolve_binary(binary_name: str, env_var: str) -> str | None:
     override = os.environ.get(env_var)
     if override:
-        if override.lower() in {"none", "disabled"}:
+        if _env_disabled(override):
             return None
         return override
     return shutil.which(binary_name)
+
+
+def _resolve_openclaw_bridge_binary() -> str | None:
+    bridge = os.environ.get(
+        "STEALTH_BROWSER_OPENCLAW_CAMOUFOX_NIXOS_BIN",
+        DEFAULT_OPENCLAW_CAMOUFOX_NIXOS,
+    )
+    if not bridge or _env_disabled(bridge):
+        return None
+    if os.path.isfile(bridge) and os.access(bridge, os.X_OK):
+        return bridge
+    return None
 
 
 def _pybox_available(distrobox_binary: str) -> bool:
@@ -57,7 +74,13 @@ def _pybox_available(distrobox_binary: str) -> bool:
 
 
 def find_host_native_runtime() -> BrowserRuntime | None:
-    binary = _resolve_binary("camoufox-nixos", "STEALTH_BROWSER_CAMOUFOX_NIXOS_BIN")
+    override = os.environ.get("STEALTH_BROWSER_CAMOUFOX_NIXOS_BIN")
+    if override:
+        if _env_disabled(override):
+            return None
+        return BrowserRuntime(kind="host-native", binary=override)
+
+    binary = _resolve_openclaw_bridge_binary() or shutil.which("camoufox-nixos")
     if not binary:
         return None
     return BrowserRuntime(kind="host-native", binary=binary)

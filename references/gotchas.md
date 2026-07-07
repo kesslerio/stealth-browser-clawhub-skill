@@ -7,10 +7,12 @@ These are the recurring footguns for this repo. They matter more than generic ad
 - Do not say the browser lane failed because system Python cannot import the `camoufox` module.
 - Do not narrate browser execution as "switching to the proper runtime."
 - Run `./scripts/camoufox-fetch.py` or `./scripts/camoufox-session.py` directly.
-- Those wrapper scripts detect `camoufox-nixos` first and fall back automatically when the legacy distrobox lane is valid.
+- Inside OpenClaw/AlphaClaw, those wrapper scripts prefer `/data/bin/camoufox-nixos`, the host bridge client.
+- Outside OpenClaw/AlphaClaw, those wrapper scripts detect `camoufox-nixos` from `PATH` first and fall back automatically when the legacy distrobox lane is valid.
 - If the wrapper fails before page navigation, describe that as an observed host runtime launch failure.
 - Do not infer that a legacy Python path worked unless you actually executed that exact path and verified success.
 - Do not jump from wrapper startup failure to "site blocking" until the browser really reached the target page.
+- Do not force `/run/current-system/sw/bin/camoufox-nixos` from OpenClaw unless you are deliberately diagnosing the direct host wrapper. It can bypass the bridge and produce misleading missing-venv errors such as `/data/.local/venvs/camoufox/bin/python`.
 
 ## Browser Lane Vs API Helper
 
@@ -21,6 +23,7 @@ These are the recurring footguns for this repo. They matter more than generic ad
 ## State Ownership
 
 - This skill owns no durable state.
+- The OpenClaw/AlphaClaw bridge owns state mapping through `/data/bin/camoufox-nixos`; scripts should not override it with a temporary `CAMOUFOX_NIXOS_STATE_ROOT`.
 - `camoufox-nixos` owns host-native browser state under `~/.cache/camoufox-nixos`.
 - The legacy distrobox browser lane owns its own profile state under `~/.stealth-browser/profiles/<name>/`.
 - Do not treat those runtime-owned directories as skill-managed state.
