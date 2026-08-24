@@ -1,7 +1,7 @@
 ---
 name: camoufox-stealth-browser
 homepage: https://github.com/kesslerio/camoufox-stealth-browser-clawhub-skill
-description: Explicit-only stealth browser automation with Camoufox for hostile sites that block native OpenClaw browser, standard Playwright, or Selenium flows. Default to the native OpenClaw browser for ordinary browsing, booking flows, calendars, forms, screenshots, and generic site testing. Use Camoufox only when the user explicitly asks for Camoufox, a stealth browser, bot bypass, anti-bot evasion, Cloudflare/Datadome bypass, persistent login/session reuse, or a target has already blocked the native browser lane. Browser lane only; API helpers are secondary.
+description: Explicit-only stealth browser automation with Camoufox for hostile sites that block Browser Use (the browser-use skill), standard Playwright, or Selenium flows. Default to Browser Use for ordinary browsing, booking flows, calendars, forms, screenshots, and generic site testing. Use Camoufox only when the user explicitly asks for Camoufox, a stealth browser, bot bypass, anti-bot evasion, Cloudflare/Datadome bypass, persistent login/session reuse, or a target has already blocked the Browser Use lane. Browser lane only; API helpers are secondary.
 metadata:
   openclaw:
     emoji: "🦊"
@@ -12,18 +12,18 @@ metadata:
 
 # Camoufox Stealth Browser 🦊
 
-Default browser lane: native OpenClaw browser.
+Default browser lane: Browser Use (the `browser-use` skill).
 
-Do not use this skill for ordinary browser automation. Use native OpenClaw browser first for normal browsing, appointment booking, dynamic calendars, forms, screenshots, accessibility snapshots, and generic site testing.
+Do not use this skill for ordinary browser automation. Use Browser Use (the `browser-use` skill) first for normal browsing, appointment booking, dynamic calendars, forms, screenshots, accessibility snapshots, and generic site testing.
 
 Use Camoufox only when one of these is true:
 
 - The user explicitly asks for Camoufox.
 - The user explicitly asks for a stealth browser, bot bypass, anti-bot evasion, Cloudflare bypass, Datadome bypass, or similar.
-- Native OpenClaw browser already reached the site and was blocked by anti-bot or fingerprinting defenses.
+- Browser Use already reached the site and was blocked by anti-bot or fingerprinting defenses.
 - The task requires a persistent hostile-site stealth session and the user accepts that tradeoff.
 
-Camoufox is the hostile-site browser lane, not the default browser lane. If native OpenClaw browser is unavailable, report that directly instead of silently switching to Camoufox unless the user asked for stealth/bypass behavior.
+Camoufox is the hostile-site browser lane, not the default browser lane. If Browser Use is unavailable, report that directly instead of silently switching to Camoufox unless the user asked for stealth/bypass behavior.
 
 ## Why Camoufox
 
@@ -96,7 +96,7 @@ sudo nixos-rebuild switch --flake /etc/nixos#nixos
 - You need actual stealth rather than generic browser automation
 - You need login/session reuse on a host that already has `camoufox-nixos`
 
-Do **not** use this skill for ordinary browsing or generic site testing. Use native OpenClaw browser for that.
+Do **not** use this skill for ordinary browsing or generic site testing. Use Browser Use (the `browser-use` skill) for that.
 
 ## Workflow Summary
 
